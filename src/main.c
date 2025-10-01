@@ -49,6 +49,7 @@ DEFINE_RSP_UCODE(rsp_bench);
 
 uint8_t rambuf[1024*1024] alignas(64);
 
+static volatile struct SP_regs_s * const SP_regs = (struct SP_regs_s *)0xa4040000;
 static volatile struct VI_regs_s * const VI_regs = (struct VI_regs_s *)0xa4400000;
 static volatile struct PI_regs_s * const PI_regs = (struct PI_regs_s *)0xa4600000;
 static volatile struct SI_regs_s * const SI_regs = (struct SI_regs_s *)0xa4800000;
@@ -523,6 +524,30 @@ xcycle_t bench_joybus_access(benchmark_t *b) {
     }), ({ joybus_read(out); }));
 }
 
+#define  BUILD_SP_LEN_REG(count, length, skip) ((((count-1) & 0xFF) << 12) | ((length-1) & 0xFF8) | ((skip & 0xFF8) << 20))
+
+xcycle_t bench_spdma_read(benchmark_t* b) {
+   return TIMEIT_WHILE_MULTI(10, ({
+      SP_regs->DRAM_addr = rambuf;
+      SP_regs->RSP_addr = 0;
+   }), ({
+      SP_regs->rsp_read_length = b->qty;
+   }), ({
+      SP_regs->status & (SP_STATUS_DMA_BUSY | SP_STATUS_IO_BUSY);
+   }));
+}
+
+xcycle_t bench_spdma_write(benchmark_t* b) {
+   return TIMEIT_WHILE_MULTI(10, ({
+      SP_regs->DRAM_addr = rambuf;
+      SP_regs->RSP_addr = 0;
+   }), ({
+      SP_regs->rsp_write_length = b->qty;
+   }), ({
+      SP_regs->status & (SP_STATUS_DMA_BUSY | SP_STATUS_IO_BUSY);
+   }));
+}
+
 /**************************************************************************************/
 
 void bench_rsp(void)
@@ -626,6 +651,24 @@ int main(void)
         { bench_joybus_3j,      "JOY: 3J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(77924) },
         { bench_joybus_4j,      "JOY: 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(97890) },
         { bench_joybus_access,  "JOY: Accessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
+
+        { bench_spdma_read, "SPDMAR 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
+        { bench_spdma_read, "SPDMAR 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(35) },
+        { bench_spdma_read, "SPDMAR 80", BUILD_SP_LEN_REG(1,0x80,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(50) },
+        { bench_spdma_read, "SPDMAR 800", BUILD_SP_LEN_REG(1,0x800,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(339) },
+        { bench_spdma_read, "SPDMAR 1000", BUILD_SP_LEN_REG(1,0x1000,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(653) },
+        { bench_spdma_read, "SPDMAR 8*(8+8)", BUILD_SP_LEN_REG(8,8,8), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(136) },
+        { bench_spdma_read, "SPDMAR 80*400", BUILD_SP_LEN_REG(0x80,0x400,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(20079) },
+        { bench_spdma_read, "SPDMAR 400*(400+100)", BUILD_SP_LEN_REG(0x400,0x400,0x100), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(40289) },
+
+        { bench_spdma_write, "SPDMAW 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
+        { bench_spdma_write, "SPDMAW 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
+        { bench_spdma_write, "SPDMAW 80", BUILD_SP_LEN_REG(1,0x80,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(50) },
+        { bench_spdma_write, "SPDMAW 800", BUILD_SP_LEN_REG(1,0x800,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(327) },
+        { bench_spdma_write, "SPDMAW 1000", BUILD_SP_LEN_REG(1,0x1000,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(623) },
+        { bench_spdma_write, "SPDMAW 8*(8+8)", BUILD_SP_LEN_REG(8,8,8), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(102) },
+        { bench_spdma_write, "SPDMAW 80*400", BUILD_SP_LEN_REG(0x80,0x400,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(19176) },
+        { bench_spdma_write, "SPDMAW 400*(400+100)", BUILD_SP_LEN_REG(0x400,0x400,0x100), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(38540) }
     };
 
     rsp_init();
@@ -770,9 +813,16 @@ int main(void)
                 else if (b->passed_30p) graphics_set_color(colors[3], 0);
                 else                    graphics_set_color(colors[4], 0);
 
-                sprintf(sbuf, "%20s %7d | %4s | %7lld | %7lld | %+7lld (%+02.1f%%)",
-                    b->name, b->qty, cycletype_name(b->cycletype),
-                    expected, found, found-expected, (float)(found - expected) * 100.0f / (float)expected);
+	        if(b->qty < 10000000) {
+		   sprintf(sbuf, "%20s %7d | %4s | %7lld | %7lld | %+7lld (%+02.1f%%)",
+			   b->name, b->qty, cycletype_name(b->cycletype),
+			   expected, found, found-expected, (float)(found - expected) * 100.0f / (float)expected);
+		} else {
+		   sprintf(sbuf, "%20s ------- | %4s | %7lld | %7lld | %+7lld (%+02.1f%%)",
+			   b->name, cycletype_name(b->cycletype),
+			   expected, found, found-expected, (float)(found - expected) * 100.0f / (float)expected);
+		}
+	       
                 graphics_draw_text(disp, 20, y, sbuf);
                 y += 10;
             }
