@@ -2,6 +2,7 @@
 #include <stdalign.h>
 #include <libdragon.h>
 #include "../libdragon/include/regsinternal.h"
+#include "rdp_lowlevel.h"
 
 typedef uint64_t xcycle_t;
 
@@ -50,6 +51,7 @@ DEFINE_RSP_UCODE(rsp_bench);
 uint8_t rambuf[1024*1024] alignas(64);
 
 static volatile struct SP_regs_s * const SP_regs = (struct SP_regs_s *)0xa4040000;
+static volatile struct DP_regs_s * const DP_regs = (struct DP_regs_s *)0xa4100000;
 static volatile struct VI_regs_s * const VI_regs = (struct VI_regs_s *)0xa4400000;
 static volatile struct PI_regs_s * const PI_regs = (struct PI_regs_s *)0xa4600000;
 static volatile struct SI_regs_s * const SI_regs = (struct SI_regs_s *)0xa4800000;
@@ -548,6 +550,15 @@ xcycle_t bench_spdma_write(benchmark_t* b) {
    }));
 }
 
+xcycle_t bench_rdp_fillrect(benchmark_t* b) {
+   return TIMEIT_WHILE_MULTI(10, ({
+   }), ({
+   }), ({
+      (DP_regs->status & DP_STATUS_CMD_BUSY) != 0 &&
+      (DP_regs->current != DP_regs->end);
+   }));
+}
+
 /**************************************************************************************/
 
 void bench_rsp(void)
@@ -668,7 +679,11 @@ int main(void)
         { bench_spdma_write, "SPDMAW 1000", BUILD_SP_LEN_REG(1,0x1000,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(623) },
         { bench_spdma_write, "SPDMAW 8*(8+8)", BUILD_SP_LEN_REG(8,8,8), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(102) },
         { bench_spdma_write, "SPDMAW 80*400", BUILD_SP_LEN_REG(0x80,0x400,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(19176) },
-        { bench_spdma_write, "SPDMAW 400*(400+100)", BUILD_SP_LEN_REG(0x400,0x400,0x100), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(38540) }
+        { bench_spdma_write, "SPDMAW 400*(400+100)", BUILD_SP_LEN_REG(0x400,0x400,0x100), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(38540) },
+
+        { bench_rdp_fillrect, "RDP FILL RECT(8)", 8, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
+        { bench_rdp_fillrect, "RDP FILL RECT(80)", 80, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
+        { bench_rdp_fillrect, "RDP FILL RECT(800)", 800, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) }
     };
 
     rsp_init();
