@@ -56,6 +56,8 @@ static volatile struct VI_regs_s * const VI_regs = (struct VI_regs_s *)0xa440000
 static volatile struct PI_regs_s * const PI_regs = (struct PI_regs_s *)0xa4600000;
 static volatile struct SI_regs_s * const SI_regs = (struct SI_regs_s *)0xa4800000;
 
+static volatile uint8_t * const DMEM = (uint8_t *)0xa4000000;
+
 static volatile void *PIF_ROM = (void *)0x1fc00700;
 static volatile void *PIF_RAM = (void *)0x1fc007c0;
 
@@ -552,7 +554,15 @@ xcycle_t bench_spdma_write(benchmark_t* b) {
 
 xcycle_t bench_rdp_fillrect(benchmark_t* b) {
    return TIMEIT_WHILE_MULTI(10, ({
+      DP_regs->status = DP_STATUS_SET_XBUS;
+      uint64_t* currentPointer = (uint64_t*)DMEM;
+      rdp_asm_set_color_image(&currentPointer, FORMAT_RGBA, SIZE_16BPP, 320, rambuf);
+
+      DP_regs->start = 0;
+      DP_regs->end = (int32_t)currentPointer & 0xFFF;
+      while((DP_regs->status & DP_STATUS_CMD_BUSY) != 0 && (DP_regs->current != DP_regs->end));
    }), ({
+      // rectangle should be drawn there
    }), ({
       (DP_regs->status & DP_STATUS_CMD_BUSY) != 0 &&
       (DP_regs->current != DP_regs->end);
@@ -683,7 +693,7 @@ int main(void)
 
         { bench_rdp_fillrect, "RDP FILL RECT(8)", 8, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
         { bench_rdp_fillrect, "RDP FILL RECT(80)", 80, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
-        { bench_rdp_fillrect, "RDP FILL RECT(800)", 800, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) }
+        { bench_rdp_fillrect, "RDP FILL RECT(200)", 200, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) }
     };
 
     rsp_init();
