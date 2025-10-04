@@ -52,6 +52,7 @@ uint8_t rambuf[1024*1024] alignas(64);
 
 static volatile struct SP_regs_s * const SP_regs = (struct SP_regs_s *)0xa4040000;
 static volatile struct DP_regs_s * const DP_regs = (struct DP_regs_s *)0xa4100000;
+static volatile struct MI_regs_s * const MI_regs = (struct MI_regs_s *)0xa4300000;
 static volatile struct VI_regs_s * const VI_regs = (struct VI_regs_s *)0xa4400000;
 static volatile struct PI_regs_s * const PI_regs = (struct PI_regs_s *)0xa4600000;
 static volatile struct SI_regs_s * const SI_regs = (struct SI_regs_s *)0xa4800000;
@@ -553,19 +554,36 @@ xcycle_t bench_spdma_write(benchmark_t* b) {
 }
 
 xcycle_t bench_rdp_fillrect(benchmark_t* b) {
+   uint64_t* currentPointer;
+   
    return TIMEIT_WHILE_MULTI(10, ({
+      OtherModes other_modes = { 0 };
+      
       DP_regs->status = DP_STATUS_SET_XBUS;
-      uint64_t* currentPointer = (uint64_t*)DMEM;
-      rdp_asm_set_color_image(&currentPointer, FORMAT_RGBA, SIZE_16BPP, 320, rambuf);
+      currentPointer = (uint64_t*)DMEM;
+      rdp_asm_set_color_image(&currentPointer, FORMAT_RGBA, PIXELSIZE_16BPP, 320, rambuf);
+      rdp_asm_set_scissor(&currentPointer, (Point){0.0, 0.0}, (Point){320.0, 240.0}, INTERLACED_MODE_OFF, FIELD_EVEN);
+      rdp_asm_set_cycle_type(&other_modes, CYCLE_TYPE_FILL);
+      rdp_asm_set_other_modes(&currentPointer, other_modes);
+      rdp_asm_set_fill_color(&currentPointer, (Color){ .rgba16 = { { .value = toRGBA16(128, 0, 0, 0), .value = toRGBA16(128, 0, 0, 0) }}});
+      rdp_asm_sync_full(&currentPointer);
 
+      MI_regs->mode = MI_MODE_CLEAR_DP;
       DP_regs->start = 0;
       DP_regs->end = (int32_t)currentPointer & 0xFFF;
-      while((DP_regs->status & DP_STATUS_CMD_BUSY) != 0 && (DP_regs->current != DP_regs->end));
+      while(/*(DP_regs->status & DP_STATUS_CMD_BUSY) != 0 || (DP_regs->current != DP_regs->end) ||*/ (MI_regs->intr & MI_INTERRUPT_DP) == 0);
+      
+      currentPointer = (uint64_t*)DMEM;
+      rdp_asm_fill_rectangle(&currentPointer, (Point){0.0, 0.0}, (Point){(float)b->qty, (float)b->qty});
+      rdp_asm_sync_full(&currentPointer);
+      MI_regs->mode = MI_MODE_CLEAR_DP;
+      DP_regs->start = 0;
    }), ({
-      // rectangle should be drawn there
+      DP_regs->end = (int32_t)currentPointer & 0XFFF;
    }), ({
-      (DP_regs->status & DP_STATUS_CMD_BUSY) != 0 &&
-      (DP_regs->current != DP_regs->end);
+      /*(DP_regs->status & DP_STATUS_CMD_BUSY) != 0 ||
+      (DP_regs->current != DP_regs->end) ||*/
+      (MI_regs->intr & MI_INTERRUPT_DP) == 0;
    }));
 }
 
