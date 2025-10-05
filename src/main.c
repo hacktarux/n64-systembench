@@ -571,7 +571,7 @@ xcycle_t bench_rdp_fillrect(benchmark_t* b) {
       MI_regs->mode = MI_MODE_CLEAR_DP;
       DP_regs->start = 0;
       DP_regs->end = (int32_t)currentPointer & 0xFFF;
-      while(/*(DP_regs->status & DP_STATUS_CMD_BUSY) != 0 || (DP_regs->current != DP_regs->end) ||*/ (MI_regs->intr & MI_INTERRUPT_DP) == 0);
+      while((DP_regs->status & DP_STATUS_PIPE_BUSY) != 0 || (MI_regs->intr & MI_INTERRUPT_DP) == 0);
       
       currentPointer = (uint64_t*)DMEM;
       rdp_asm_fill_rectangle(&currentPointer, (Point){0.0, 0.0}, (Point){(float)b->qty, (float)b->qty});
@@ -581,8 +581,7 @@ xcycle_t bench_rdp_fillrect(benchmark_t* b) {
    }), ({
       DP_regs->end = (int32_t)currentPointer & 0XFFF;
    }), ({
-      /*(DP_regs->status & DP_STATUS_CMD_BUSY) != 0 ||
-      (DP_regs->current != DP_regs->end) ||*/
+      (DP_regs->status & DP_STATUS_PIPE_BUSY) != 0 ||
       (MI_regs->intr & MI_INTERRUPT_DP) == 0;
    }));
 }

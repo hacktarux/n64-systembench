@@ -10,7 +10,7 @@
 
 void rdp_asm_sync_full(uint64_t** ptr) {
    **ptr = CMD_SYNC_FULL << 56;
-   *ptr += sizeof(uint64_t);
+   ++(*ptr);
 }
 
 void rdp_asm_set_scissor(uint64_t** ptr, Point upper_left, Point lower_right, InterlacedMode mode, Field field) {
@@ -21,7 +21,7 @@ void rdp_asm_set_scissor(uint64_t** ptr, Point upper_left, Point lower_right, In
      ((field.value & 1) << 24) |
      (((int64_t)(lower_right.x * 4.0) & 0xFFF) << 12) |
      ((int64_t)(lower_right.y * 4.0) & 0xFFF);
-   *ptr += sizeof(uint64_t);
+   ++(*ptr);
 }
 
 void rdp_asm_set_cycle_type(OtherModes* other_modes, CycleType cycle_type) {
@@ -31,7 +31,7 @@ void rdp_asm_set_cycle_type(OtherModes* other_modes, CycleType cycle_type) {
 void rdp_asm_set_other_modes(uint64_t** ptr, OtherModes other_modes) {
    **ptr = (CMD_SET_OTHER_MODES << 56) |
      (other_modes.value & 0xFFFFFFFFFFFFFFLL);
-   *ptr += sizeof(uint64_t);
+   ++(*ptr);
 }
 
 void rdp_asm_fill_rectangle(uint64_t** ptr, Point upper_left, Point lower_right) {
@@ -40,20 +40,20 @@ void rdp_asm_fill_rectangle(uint64_t** ptr, Point upper_left, Point lower_right)
      (((int64_t)(lower_right.y * 4.0) & 0xFFF) << 32) |
      (((int64_t)(upper_left.x * 4.0) & 0xFFF) << 12) |
      ((int64_t)(upper_left.y * 4.0) & 0xFFF);
-   *ptr += sizeof(uint64_t);
+   ++(*ptr);
 }
 
 void rdp_asm_set_fill_color(uint64_t** ptr, Color color) {
    **ptr = (CMD_SET_FILL_COLOR << 56) |
      (uint64_t)color.value;
-   *ptr += sizeof(uint64_t);
+   ++(*ptr);
 }
 
 void rdp_asm_set_color_image(uint64_t** ptr, Format format, PixelSize size, int width, uint8_t* address) {
    **ptr = (CMD_SET_COLOR_IMAGE << 56) |
      ((format.value & 7) << 53) |
      ((size.value & 3) << 51) |
-     (((uint64_t)width & 0x3FF) << 32) |
+     (((uint64_t)(width-1) & 0x3FF) << 32) |
      ((uint32_t)address & 0xFFFFFF);
-   *ptr += sizeof(uint64_t);
+   ++(*ptr);
 }
