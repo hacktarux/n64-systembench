@@ -5,7 +5,6 @@
 
 typedef uint64_t xcycle_t;
 
-#define RCP_FREQUENCY            62500000              // N64 & iQue
 #define RCP_FACTOR               9                     // Scaling factor to convert to xcycle
 #define CPU_FACTOR               (RCP_FREQUENCY * RCP_FACTOR / CPU_FREQUENCY)   // CPU Scaling factor (different N64 vs iQue)
 #define COP0_FACTOR              (CPU_FACTOR * 2)
@@ -47,7 +46,8 @@ typedef struct benchmark_s {
 
 DEFINE_RSP_UCODE(rsp_bench);
 
-uint8_t rambuf[1024*1024] alignas(64);
+__attribute__((aligned(64)))
+uint8_t rambuf[1024*1024];
 
 static volatile struct VI_regs_s * const VI_regs = (struct VI_regs_s *)0xa4400000;
 static volatile struct PI_regs_s * const PI_regs = (struct PI_regs_s *)0xa4600000;
@@ -57,9 +57,6 @@ static volatile void *PIF_ROM = (void *)0x1fc00700;
 static volatile void *PIF_RAM = (void *)0x1fc007c0;
 
 #define PIF
-
-#define PI_STATUS_DMA_BUSY ( 1 << 0 )
-#define PI_STATUS_IO_BUSY  ( 1 << 1 )
 
 #define SI_STATUS_DMA_BUSY ( 1 << 0 )
 #define SI_STATUS_IO_BUSY  ( 1 << 1 )
@@ -516,7 +513,7 @@ xcycle_t bench_joybus_access(benchmark_t *b) {
 
 void bench_rsp(void)
 {
-    volatile uint32_t t1;
+    volatile uint32_t t1 = 0;
     volatile bool finish = false;
     void sp_done(void) {
         t1 = TICKS_READ();
