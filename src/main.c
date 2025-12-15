@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdalign.h>
 #include <libdragon.h>
-#include "../libdragon/include/regsinternal.h"
+#include <string.h>
+#include "regsinternal.h"
 #include "rdp_lowlevel.h"
 
 typedef uint64_t xcycle_t;
@@ -18,6 +19,9 @@ typedef uint64_t xcycle_t;
 #define MEASUREMENT_ERROR_CPU    XCYCLE_FROM_CPU(1)    // Sampling error when measuring CPU cycles
 #define MEASUREMENT_ERROR_RCP    XCYCLE_FROM_CPU(4)    // Sampling error when measuring RCP cycles
 
+#define AI_NTSC_DACRATE 48681812
+#define AI_PAL_DACRATE  49656530
+#define AI_MPAL_DACRATE 48628316
 
 typedef enum {
     CYCLE_RCP,
@@ -51,8 +55,6 @@ __attribute__((aligned(64)))
 uint8_t rambuf[1024*1024];
 
 static volatile struct SP_regs_s * const SP_regs = (struct SP_regs_s *)0xa4040000;
-static volatile struct DP_regs_s * const DP_regs = (struct DP_regs_s *)0xa4100000;
-static volatile struct MI_regs_s * const MI_regs = (struct MI_regs_s *)0xa4300000;
 static volatile struct VI_regs_s * const VI_regs = (struct VI_regs_s *)0xa4400000;
 static volatile struct PI_regs_s * const PI_regs = (struct PI_regs_s *)0xa4600000;
 static volatile struct SI_regs_s * const SI_regs = (struct SI_regs_s *)0xa4800000;
@@ -174,7 +176,7 @@ xcycle_t bench_rcp_io_r(benchmark_t *b) {
 }
 
 xcycle_t bench_rcp_io_w(benchmark_t *b) {
-    return TIMEIT_MULTI(50, fill_out_buffer(), ({ VI_regs->control = 0; }));
+    return TIMEIT_MULTI_ODD_DETECTION(50, fill_out_buffer(), ({ VI_regs->control = 0; }));
 }
 
 xcycle_t bench_pidma(benchmark_t* b) {
@@ -321,6 +323,11 @@ static void joybus_read(uint64_t *out) {
     while (SI_regs->status & (SI_STATUS_DMA_BUSY | SI_STATUS_IO_BUSY)) {}
 }
 
+static void joybus_wait(void)
+{
+   while (SI_regs->status & (SI_STATUS_DMA_BUSY | SI_STATUS_IO_BUSY)) {}
+}
+
 xcycle_t bench_joybus_empty0(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
@@ -336,6 +343,26 @@ xcycle_t bench_joybus_empty0(benchmark_t *b) {
         buf[7] = 1;       
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
+}
+
+xcycle_t bench_joybus_wempty0(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0xfe00000000000000;
+			   buf[1] = 0;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
 }
 
 xcycle_t bench_joybus_empty0b(benchmark_t *b) {
@@ -355,6 +382,26 @@ xcycle_t bench_joybus_empty0b(benchmark_t *b) {
     }), ({ joybus_read(out); }));
 }
 
+xcycle_t bench_joybus_wempty0b(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0x00fe000000000000;
+			   buf[1] = 0;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
+}
+
 xcycle_t bench_joybus_empty0c(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
@@ -372,6 +419,26 @@ xcycle_t bench_joybus_empty0c(benchmark_t *b) {
     }), ({ joybus_read(out); }));
 }
 
+xcycle_t bench_joybus_wempty0c(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0x00000000fe000000;
+			   buf[1] = 0;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
+}
+
 xcycle_t bench_joybus_empty1(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
@@ -387,6 +454,26 @@ xcycle_t bench_joybus_empty1(benchmark_t *b) {
         buf[7] = 1;       
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
+}
+
+xcycle_t bench_joybus_wempty1(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0;
+			   buf[1] = 0xfe00000000000000;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
 }
 
 
@@ -407,6 +494,26 @@ xcycle_t bench_joybus_empty4(benchmark_t *b) {
     }), ({ joybus_read(out); }));
 }
 
+xcycle_t bench_joybus_wempty4(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0;
+			   buf[1] = 0;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0xfe00000000000000;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;
+			   joybus_write(buf); 
+			}));
+}
+
 xcycle_t bench_joybus_empty7(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
@@ -422,6 +529,26 @@ xcycle_t bench_joybus_empty7(benchmark_t *b) {
         buf[7] = 0xfe00000000000001;       
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
+}
+
+xcycle_t bench_joybus_wempty7(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0;
+			   buf[1] = 0;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 0xfe00000000000001;       
+			   joybus_write(buf); 
+			}));
 }
 
 xcycle_t bench_joybus_empty7e(benchmark_t *b) {
@@ -441,6 +568,26 @@ xcycle_t bench_joybus_empty7e(benchmark_t *b) {
     }), ({ joybus_read(out); }));
 }
 
+xcycle_t bench_joybus_wempty7e(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0;
+			   buf[1] = 0;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 0x000000000000fe01;       
+			   joybus_write(buf); 
+			}));
+}
+
 xcycle_t bench_joybus_1j(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
@@ -456,6 +603,26 @@ xcycle_t bench_joybus_1j(benchmark_t *b) {
         buf[7] = 1;       
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
+}
+
+xcycle_t bench_joybus_w1j(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0xff010401ffffffff;
+			   buf[1] = 0xfe00000000000000;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
 }
 
 xcycle_t bench_joybus_2j(benchmark_t *b) {
@@ -475,6 +642,26 @@ xcycle_t bench_joybus_2j(benchmark_t *b) {
     }), ({ joybus_read(out); }));
 }
 
+xcycle_t bench_joybus_w2j(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0xff010401ffffffff;
+			   buf[1] = 0xff010401ffffffff;
+			   buf[2] = 0xfe00000000000000;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
+}
+
 xcycle_t bench_joybus_3j(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
@@ -490,6 +677,46 @@ xcycle_t bench_joybus_3j(benchmark_t *b) {
         buf[7] = 1;       
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
+}
+
+xcycle_t bench_joybus_w3j(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0xff010401ffffffff;
+			   buf[1] = 0xff010401ffffffff;
+			   buf[2] = 0xff010401ffffffff;
+			   buf[3] = 0xfe00000000000000;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
+}
+
+xcycle_t bench_joybus_w4j(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0xff010401ffffffff;
+			   buf[1] = 0xff010401ffffffff;
+			   buf[2] = 0xff010401ffffffff;
+			   buf[3] = 0xff010401ffffffff;
+			   buf[4] = 0xfe00000000000000;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
 }
 
 xcycle_t bench_joybus_4j(benchmark_t *b) {
@@ -526,6 +753,73 @@ xcycle_t bench_joybus_access(benchmark_t *b) {
     }), ({ joybus_read(out); }));
 }
 
+xcycle_t bench_joybus_waccess(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0xff010300ffffffff;
+			   buf[1] = 0xfe00000000000000;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
+}
+
+uint32_t after_read = 0, after_write = 0;
+
+xcycle_t bench_6105r(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+    uint64_t *out = UncachedAddr(rambuf+64);
+
+    xcycle_t res = TIMEIT_MULTI(50, ({ 
+        buf[0] = 0;
+        buf[1] = 0;
+        buf[2] = 0;
+        buf[3] = 0;
+        buf[4] = 0;
+        buf[5] = 0;
+        buf[6] = 0x0102030405060708;
+        buf[7] = 0xa1b2c3d4e5f67702;
+        joybus_write(buf); 
+    }), ({ joybus_read(out); }));
+   
+   volatile uint32_t *PIF_RAM = (volatile uint32_t*)0xBFC007F0;
+   after_read = *PIF_RAM;
+   return res;
+}
+
+xcycle_t bench_6105w(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    xcycle_t res = TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0;
+			   buf[1] = 0;
+			   buf[2] = 0;
+			   buf[3] = 0;
+			   buf[4] = 0;
+			   buf[5] = 0;
+			   buf[6] = 0x0102030405060708;
+			   buf[7] = 0xa1b2c3d4e5f67702;       
+			   joybus_write(buf); 
+			}));
+
+   volatile uint32_t *PIF_RAM = (volatile uint32_t*)0xBFC007F0;
+   after_write = *PIF_RAM;
+   return res;
+}
+
 #define  BUILD_SP_LEN_REG(count, length, skip) ((((count-1) & 0xFF) << 12) | ((length-1) & 0xFF8) | ((skip & 0xFF8) << 20))
 
 xcycle_t bench_spdma_read(benchmark_t* b) {
@@ -556,7 +850,7 @@ xcycle_t bench_rdp_fillrect(benchmark_t* b) {
    return TIMEIT_WHILE_MULTI(10, ({
       OtherModes other_modes = { 0 };
       
-      DP_regs->status = DP_STATUS_SET_XBUS;
+      *DP_STATUS = DP_WSTATUS_SET_XBUS_DMEM_DMA;
       currentPointer = (uint64_t*)DMEM;
       rdp_asm_set_color_image(&currentPointer, FORMAT_RGBA, PIXELSIZE_16BPP, 320, rambuf);
       rdp_asm_set_scissor(&currentPointer, (Point){0.0, 0.0}, (Point){320.0, 240.0}, INTERLACED_MODE_OFF, FIELD_EVEN);
@@ -565,21 +859,21 @@ xcycle_t bench_rdp_fillrect(benchmark_t* b) {
       rdp_asm_set_fill_color(&currentPointer, (Color){ .rgba16 = { { .value = toRGBA16(128, 0, 0, 0), .value = toRGBA16(128, 0, 0, 0) }}});
       rdp_asm_sync_full(&currentPointer);
 
-      MI_regs->mode = MI_MODE_CLEAR_DP;
-      DP_regs->start = 0;
-      DP_regs->end = (int32_t)currentPointer & 0xFFF;
-      while((DP_regs->status & DP_STATUS_PIPE_BUSY) != 0 || (MI_regs->intr & MI_INTERRUPT_DP) == 0);
+      *MI_MODE = MI_WMODE_CLR_DPINT;
+      *DP_START = 0;
+      *DP_END = (int32_t)currentPointer & 0xFFF;
+      while((*DP_STATUS & DP_STATUS_PIPE_BUSY) != 0 || (*MI_INTERRUPT & MI_INTERRUPT_DP) == 0);
       
       currentPointer = (uint64_t*)DMEM;
       rdp_asm_fill_rectangle(&currentPointer, (Point){0.0, 0.0}, (Point){(float)b->qty, (float)b->qty});
       rdp_asm_sync_full(&currentPointer);
-      MI_regs->mode = MI_MODE_CLEAR_DP;
-      DP_regs->start = 0;
+      *MI_MODE = MI_WMODE_CLR_DPINT;
+      *DP_START = 0;
    }), ({
-      DP_regs->end = (int32_t)currentPointer & 0XFFF;
+      *DP_END = (int32_t)currentPointer & 0XFFF;
    }), ({
-      (DP_regs->status & DP_STATUS_PIPE_BUSY) != 0 ||
-      (MI_regs->intr & MI_INTERRUPT_DP) == 0;
+      (*DP_STATUS & DP_STATUS_PIPE_BUSY) != 0 ||
+      (*MI_INTERRUPT & MI_INTERRUPT_DP) == 0;
    }));
 }
 
@@ -659,7 +953,7 @@ int main(void)
         { bench_ram_uncached_r32_multirows, "RDRAM U32R rows",   4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(165) },
 
         { bench_rcp_io_r, "RCP I/O R",    1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(24) },
-        // { bench_rcp_io_w, "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(193) },  // FIXME: flush buffer
+        { bench_rcp_io_w, "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },  // FIXME: flush buffer
 
         { bench_pidma, "PI DMA",        8,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(193) },
         { bench_pidma, "PI DMA",      128,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(1591) },
@@ -686,6 +980,22 @@ int main(void)
         { bench_joybus_3j,      "JOY: 3J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(77924) },
         { bench_joybus_4j,      "JOY: 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(97890) },
         { bench_joybus_access,  "JOY: Accessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
+
+        { bench_joybus_wempty0,  "JOY: W Empty 0B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(9180) },
+        { bench_joybus_wempty0b, "JOY: W Empty 1B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(10586) },
+        { bench_joybus_wempty0c, "JOY: W Empty 4B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(14811) },
+        { bench_joybus_wempty1,  "JOY: W Empty 8B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15323) },
+        { bench_joybus_wempty4,  "JOY: W Empty 32B",   64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15324) },
+        { bench_joybus_wempty7,  "JOY: W Empty 56B",   64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15328) },
+        { bench_joybus_wempty7e, "JOY: W Empty 63B",   64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15323) },
+        { bench_joybus_w1j,      "JOY: W 1J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15707) },
+        { bench_joybus_w2j,      "JOY: W 2J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(22237) },
+        { bench_joybus_w3j,      "JOY: W 3J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(28764) },
+        { bench_joybus_w4j,      "JOY: W 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(35293) },
+        { bench_joybus_waccess,  "JOY: WAccessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(16865) },
+
+        { bench_6105w,  "6105 challenge w",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
+        { bench_6105r,  "6105 challenge r",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
 
         { bench_spdma_read, "SPDMAR 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
         { bench_spdma_read, "SPDMAR 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(35) },
@@ -781,18 +1091,19 @@ int main(void)
     SI_regs->status = SI_WSTATUS_INTACK;
 
     enable_interrupts();
-    controller_init();
+    joypad_init();
     display_init( RESOLUTION_640x240, DEPTH_32_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE );
+   
     while(1) {
         char sbuf[1024];
         display_context_t disp;
-        while (!(disp = display_lock())) {}
-        controller_scan();
-        struct controller_data cont = get_keys_down();
+        while (!(disp = display_get())) {}
+        joypad_poll();
+        joypad_buttons_t cont = joypad_get_buttons_pressed(JOYPAD_PORT_1);
 
-        if (cont.c->start) page = 0;
-        if (cont.c->L) page = (page - 1) % num_pages;
-        if (cont.c->R) page = (page + 1) % num_pages;
+        if (cont.start) page = 0;
+        if (cont.l) page = (page - 1) % num_pages;
+        if (cont.r) page = (page + 1) % num_pages;
         
         graphics_fill_screen(disp, 0);
         sprintf(sbuf, "Page %d/%d", page+1, num_pages);
@@ -834,6 +1145,21 @@ int main(void)
             graphics_set_color(0xFFFFFFFF, 0);
 
             graphics_draw_text(disp, 320-110, 140, "Press L/R to navigate pages");
+
+	    sprintf(sbuf, "after read:%x, after write:%x", (int)after_read, (int)after_write);
+	    graphics_draw_text(disp, 40, 160, sbuf);
+
+	    /*sprintf(sbuf, "cycles cop1: %d [%x,%x] -> [%x,%x], new:%d", cyclesCop1, (int)minRange1, (int)minRange2, (int)maxRange1, (int)maxRange2, cycles);
+	    graphics_draw_text(disp, 40, 160, sbuf);*/
+
+	    /*sprintf(sbuf, "deltas: %d %d %d %d %d %d %d %d", deltas[0], deltas[1], deltas[2], deltas[3], deltas[4], deltas[5], deltas[6], deltas[7]);
+	    graphics_draw_text(disp, 10, 160, sbuf);
+
+	    sprintf(sbuf, "deltas: %d %d %d %d %d %d %d %d", deltas[8], deltas[9], deltas[10], deltas[11], deltas[12], deltas[13], deltas[14], deltas[15]);
+	    graphics_draw_text(disp, 10, 170, sbuf);
+
+	    sprintf(sbuf, "bigs: %d", bigs);
+	    graphics_draw_text(disp, 10, 180, sbuf);*/
 
             display_show(disp);
         } break;
