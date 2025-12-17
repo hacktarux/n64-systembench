@@ -773,26 +773,22 @@ xcycle_t bench_joybus_waccess(benchmark_t *b) {
 			}));
 }
 
-uint32_t after_read = 0, after_write = 0;
-
 xcycle_t bench_6105r(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
 
     xcycle_t res = TIMEIT_MULTI(50, ({ 
-        buf[0] = 0;
-        buf[1] = 0;
-        buf[2] = 0;
-        buf[3] = 0;
-        buf[4] = 0;
-        buf[5] = 0;
+        buf[0] = 0xffffffffffffffff;
+        buf[1] = 0xffffffffffffffff;
+        buf[2] = 0xffffffffffffffff;
+        buf[3] = 0xffffffffffffffff;
+        buf[4] = 0xffffffffffffffff;
+        buf[5] = 0xffffffffffffffff;
         buf[6] = 0x0102030405060708;
         buf[7] = 0xa1b2c3d4e5f67702;
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
    
-   volatile uint32_t *PIF_RAM = (volatile uint32_t*)0xBFC007F0;
-   after_read = *PIF_RAM;
    return res;
 }
 
@@ -804,19 +800,17 @@ xcycle_t bench_6105w(benchmark_t *b) {
 			   joybus_wait();
 			}),
 			({ 
-			   buf[0] = 0;
-			   buf[1] = 0;
-			   buf[2] = 0;
-			   buf[3] = 0;
-			   buf[4] = 0;
-			   buf[5] = 0;
+			   buf[0] = 0xffffffffffffffff;
+			   buf[1] = 0xffffffffffffffff;
+			   buf[2] = 0xffffffffffffffff;
+			   buf[3] = 0xffffffffffffffff;
+			   buf[4] = 0xffffffffffffffff;
+			   buf[5] = 0xffffffffffffffff;
 			   buf[6] = 0x0102030405060708;
 			   buf[7] = 0xa1b2c3d4e5f67702;       
 			   joybus_write(buf); 
 			}));
 
-   volatile uint32_t *PIF_RAM = (volatile uint32_t*)0xBFC007F0;
-   after_write = *PIF_RAM;
    return res;
 }
 
@@ -994,8 +988,8 @@ int main(void)
         { bench_joybus_w4j,      "JOY: W 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(35293) },
         { bench_joybus_waccess,  "JOY: WAccessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(16865) },
 
-        { bench_6105w,  "6105 challenge w",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
-        { bench_6105r,  "6105 challenge r",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
+        { bench_6105w,  "6105 challenge w",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(4128) },
+        { bench_6105r,  "6105 challenge r",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(676768) },
 
         { bench_spdma_read, "SPDMAR 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
         { bench_spdma_read, "SPDMAR 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(35) },
@@ -1145,9 +1139,6 @@ int main(void)
             graphics_set_color(0xFFFFFFFF, 0);
 
             graphics_draw_text(disp, 320-110, 140, "Press L/R to navigate pages");
-
-	    sprintf(sbuf, "after read:%x, after write:%x", (int)after_read, (int)after_write);
-	    graphics_draw_text(disp, 40, 160, sbuf);
 
 	    /*sprintf(sbuf, "cycles cop1: %d [%x,%x] -> [%x,%x], new:%d", cyclesCop1, (int)minRange1, (int)minRange2, (int)maxRange1, (int)maxRange2, cycles);
 	    graphics_draw_text(disp, 40, 160, sbuf);*/
