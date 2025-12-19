@@ -814,6 +814,90 @@ xcycle_t bench_6105w(benchmark_t *b) {
    return res;
 }
 
+xcycle_t bench_eeprom_r_parse(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    xcycle_t res = TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0x0000000001080420;
+			   buf[1] = 0xffffffffffffffff;
+			   buf[2] = 0xffffffffffffffff;
+			   buf[3] = 0xffffffffffffffff;
+			   buf[4] = 0xffffffffffffffff;
+			   buf[5] = 0xffffffffffffffff;
+			   buf[6] = 0xffffffffffffffff;
+			   buf[7] = 0xffffffffffffffff;       
+			   joybus_write(buf);
+			}));
+
+   return res;
+}
+
+xcycle_t bench_eeprom_r_exe(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+    uint64_t *out = UncachedAddr(rambuf+64);
+
+    xcycle_t res = TIMEIT_MULTI(50, ({ 
+       buf[0] = 0x0000000001080420;
+       buf[1] = 0xffffffffffffffff;
+       buf[2] = 0xffffffffffffffff;
+       buf[3] = 0xffffffffffffffff;
+       buf[4] = 0xffffffffffffffff;
+       buf[5] = 0xffffffffffffffff;
+       buf[6] = 0xffffffffffffffff;
+       buf[7] = 0xffffffffffffffff;       
+       joybus_write(buf);
+        joybus_write(buf); 
+    }), ({ joybus_read(out); }));
+   
+   return res;
+}
+
+xcycle_t bench_eeprom_w_parse(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    xcycle_t res = TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0x0000000009010520;
+			   buf[1] = 0x0102030405060708;
+			   buf[2] = 0xffffffffffffffff;
+			   buf[3] = 0xffffffffffffffff;
+			   buf[4] = 0xffffffffffffffff;
+			   buf[5] = 0xffffffffffffffff;
+			   buf[6] = 0xffffffffffffffff;
+			   buf[7] = 0xffffffffffffffff;
+			   joybus_write(buf);
+			}));
+
+   return res;
+}
+
+xcycle_t bench_eeprom_w_exe(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+    uint64_t *out = UncachedAddr(rambuf+64);
+
+    xcycle_t res = TIMEIT_MULTI(50, ({ 
+       buf[0] = 0x0000000009010520;
+       buf[1] = 0x0102030405060708;
+       buf[2] = 0xffffffffffffffff;
+       buf[3] = 0xffffffffffffffff;
+       buf[4] = 0xffffffffffffffff;
+       buf[5] = 0xffffffffffffffff;
+       buf[6] = 0xffffffffffffffff;
+       buf[7] = 0xffffffffffffffff;
+       joybus_write(buf);
+        joybus_write(buf); 
+    }), ({ joybus_read(out); }));
+   
+   return res;
+}
+
 #define  BUILD_SP_LEN_REG(count, length, skip) ((((count-1) & 0xFF) << 12) | ((length-1) & 0xFF8) | ((skip & 0xFF8) << 20))
 
 xcycle_t bench_spdma_read(benchmark_t* b) {
@@ -990,6 +1074,11 @@ int main(void)
 
         { bench_6105w,  "6105 challenge w",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(4128) },
         { bench_6105r,  "6105 challenge r",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(676768) },
+
+        { bench_eeprom_r_parse,  "eeprom r parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19744) },
+        { bench_eeprom_r_exe,    "eeprom r exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(692324) },
+        { bench_eeprom_w_parse,  "eeprom w parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19744) },
+        { bench_eeprom_w_exe,    "eeprom w exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(692333) },
 
         { bench_spdma_read, "SPDMAR 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
         { bench_spdma_read, "SPDMAR 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(35) },
