@@ -773,6 +773,80 @@ xcycle_t bench_joybus_waccess(benchmark_t *b) {
 			}));
 }
 
+xcycle_t bench_joybus_access_read(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+    uint64_t *out = UncachedAddr(rambuf+64);
+
+    return TIMEIT_MULTI(50, ({ 
+        buf[0] = 0xff0321020035ffff;
+        buf[1] = 0xffffffffffffffff;
+        buf[2] = 0xffffffffffffffff;
+        buf[3] = 0xffffffffffffffff;
+        buf[4] = 0xfffffffffffffffe;
+        buf[5] = 0;
+        buf[6] = 0;
+        buf[7] = 1;       
+        joybus_write(buf); 
+    }), ({ joybus_read(out); }));
+}
+
+xcycle_t bench_joybus_waccess_read(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({ 
+			   buf[0] = 0xff0321020035ffff;
+			   buf[1] = 0xffffffffffffffff;
+			   buf[2] = 0xffffffffffffffff;
+			   buf[3] = 0xffffffffffffffff;
+			   buf[4] = 0xfffffffffffffffe;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
+}
+
+xcycle_t bench_joybus_access_write(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+    uint64_t *out = UncachedAddr(rambuf+64);
+
+    return TIMEIT_MULTI(50, ({ 
+        buf[0] = 0xff23010300350102;
+        buf[1] = 0x030405060708090a;
+        buf[2] = 0x0b0c0d0e0f101112;
+        buf[3] = 0x131415161718191a;
+        buf[4] = 0x1b1c1d1e1f20fffe;
+        buf[5] = 0;
+        buf[6] = 0;
+        buf[7] = 1;       
+        joybus_write(buf); 
+    }), ({ joybus_read(out); }));
+}
+
+xcycle_t bench_joybus_waccess_write(benchmark_t *b) {
+    uint64_t *buf = UncachedAddr(rambuf);
+
+    return TIMEIT_MULTI(50,
+			({
+			   joybus_wait();
+			}),
+			({
+			   buf[0] = 0xff23010300350102;
+			   buf[1] = 0x030405060708090a;
+			   buf[2] = 0x0b0c0d0e0f101112;
+			   buf[3] = 0x131415161718191a;
+			   buf[4] = 0x1b1c1d1e1f20fffe;
+			   buf[5] = 0;
+			   buf[6] = 0;
+			   buf[7] = 1;       
+			   joybus_write(buf); 
+			}));
+}
+
 xcycle_t bench_6105r(benchmark_t *b) {
     uint64_t *buf = UncachedAddr(rambuf);
     uint64_t *out = UncachedAddr(rambuf+64);
@@ -1058,6 +1132,8 @@ int main(void)
         { bench_joybus_3j,      "JOY: 3J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(77924) },
         { bench_joybus_4j,      "JOY: 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(97890) },
         { bench_joybus_access,  "JOY: Accessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
+        { bench_joybus_access_read,  "JOY: AccessRead",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(99172) },
+        { bench_joybus_access_write, "JOY: AccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(101291) },
 
         { bench_joybus_wempty0,  "JOY: W Empty 0B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(9180) },
         { bench_joybus_wempty0b, "JOY: W Empty 1B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(10586) },
@@ -1071,6 +1147,8 @@ int main(void)
         { bench_joybus_w3j,      "JOY: W 3J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(28764) },
         { bench_joybus_w4j,      "JOY: W 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(35293) },
         { bench_joybus_waccess,  "JOY: WAccessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(16865) },
+        { bench_joybus_waccess_read,  "JOY: WAccessRead",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15713) },
+        { bench_joybus_waccess_write, "JOY: WAccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15460) },
 
         { bench_6105w,  "6105 challenge w",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(4128) },
         { bench_6105r,  "6105 challenge r",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(676768) },
