@@ -903,7 +903,7 @@ xcycle_t bench_eeprom_r_parse(benchmark_t *b) {
 			   buf[4] = 0xffffffffffffffff;
 			   buf[5] = 0xffffffffffffffff;
 			   buf[6] = 0xffffffffffffffff;
-			   buf[7] = 0xffffffffffffffff;       
+			   buf[7] = 0xffffffffffffff01;
 			   joybus_write(buf);
 			}));
 
@@ -922,7 +922,7 @@ xcycle_t bench_eeprom_r_exe(benchmark_t *b) {
        buf[4] = 0xffffffffffffffff;
        buf[5] = 0xffffffffffffffff;
        buf[6] = 0xffffffffffffffff;
-       buf[7] = 0xffffffffffffffff;       
+       buf[7] = 0xffffffffffffff01;
        joybus_write(buf);
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
@@ -945,7 +945,7 @@ xcycle_t bench_eeprom_w_parse(benchmark_t *b) {
 			   buf[4] = 0xffffffffffffffff;
 			   buf[5] = 0xffffffffffffffff;
 			   buf[6] = 0xffffffffffffffff;
-			   buf[7] = 0xffffffffffffffff;
+			   buf[7] = 0xffffffffffffff01;
 			   joybus_write(buf);
 			}));
 
@@ -964,7 +964,7 @@ xcycle_t bench_eeprom_w_exe(benchmark_t *b) {
        buf[4] = 0xffffffffffffffff;
        buf[5] = 0xffffffffffffffff;
        buf[6] = 0xffffffffffffffff;
-       buf[7] = 0xffffffffffffffff;
+       buf[7] = 0xffffffffffffff01;
        joybus_write(buf);
         joybus_write(buf); 
     }), ({ joybus_read(out); }));
@@ -1153,10 +1153,10 @@ int main(void)
         { bench_6105w,  "6105 challenge w",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(4128) },
         { bench_6105r,  "6105 challenge r",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(676768) },
 
-        { bench_eeprom_r_parse,  "eeprom r parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19744) },
-        { bench_eeprom_r_exe,    "eeprom r exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(692324) },
-        { bench_eeprom_w_parse,  "eeprom w parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19744) },
-        { bench_eeprom_w_exe,    "eeprom w exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(692333) },
+        { bench_eeprom_r_parse,  "eeprom r parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19746) },
+        { bench_eeprom_r_exe,    "eeprom r exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(39011) },
+        { bench_eeprom_w_parse,  "eeprom w parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19745) },
+        { bench_eeprom_w_exe,    "eeprom w exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(55394) },
 
         { bench_spdma_read, "SPDMAR 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
         { bench_spdma_read, "SPDMAR 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(35) },
