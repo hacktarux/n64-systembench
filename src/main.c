@@ -835,11 +835,11 @@ xcycle_t bench_joybus_waccess_write(benchmark_t *b) {
 			   joybus_wait();
 			}),
 			({
-			   buf[0] = 0xff23010300350102;
-			   buf[1] = 0x030405060708090a;
-			   buf[2] = 0x0b0c0d0e0f101112;
-			   buf[3] = 0x131415161718191a;
-			   buf[4] = 0x1b1c1d1e1f20fffe;
+			   buf[0] = 0x2301030035010203;
+			   buf[1] = 0x0405060708090a0b;
+			   buf[2] = 0x0c0d0e0f10111213;
+			   buf[3] = 0x1415161718191a1b;
+			   buf[4] = 0x1c1d1e1f20fffe00;
 			   buf[5] = 0;
 			   buf[6] = 0;
 			   buf[7] = 1;       
@@ -896,7 +896,7 @@ xcycle_t bench_eeprom_r_parse(benchmark_t *b) {
 			   joybus_wait();
 			}),
 			({ 
-			   buf[0] = 0x0000000001080420;
+			   buf[0] = 0x0000000002080420;
 			   buf[1] = 0xffffffffffffffff;
 			   buf[2] = 0xffffffffffffffff;
 			   buf[3] = 0xffffffffffffffff;
@@ -915,7 +915,7 @@ xcycle_t bench_eeprom_r_exe(benchmark_t *b) {
     uint64_t *out = UncachedAddr(rambuf+64);
 
     xcycle_t res = TIMEIT_MULTI(50, ({ 
-       buf[0] = 0x0000000001080420;
+       buf[0] = 0x0000000002080420;
        buf[1] = 0xffffffffffffffff;
        buf[2] = 0xffffffffffffffff;
        buf[3] = 0xffffffffffffffff;
@@ -1133,7 +1133,7 @@ int main(void)
         { bench_joybus_4j,      "JOY: 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(97890) },
         { bench_joybus_access,  "JOY: Accessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
         { bench_joybus_access_read,  "JOY: AccessRead",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(99172) },
-        { bench_joybus_access_write, "JOY: AccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(101291) },
+        { bench_joybus_access_write, "JOY: AccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(101204) },
 
         { bench_joybus_wempty0,  "JOY: W Empty 0B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(9180) },
         { bench_joybus_wempty0b, "JOY: W Empty 1B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(10586) },
@@ -1147,16 +1147,16 @@ int main(void)
         { bench_joybus_w3j,      "JOY: W 3J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(28764) },
         { bench_joybus_w4j,      "JOY: W 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(35293) },
         { bench_joybus_waccess,  "JOY: WAccessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(16865) },
-        { bench_joybus_waccess_read,  "JOY: WAccessRead",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15713) },
-        { bench_joybus_waccess_write, "JOY: WAccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15460) },
+        { bench_joybus_waccess_read,  "JOY: WAccessRead",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(15714) },
+        { bench_joybus_waccess_write, "JOY: WAccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(14754) },
 
         { bench_6105w,  "6105 challenge w",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(4128) },
         { bench_6105r,  "6105 challenge r",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(676768) },
 
-        { bench_eeprom_r_parse,  "eeprom r parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19746) },
-        { bench_eeprom_r_exe,    "eeprom r exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(39011) },
-        { bench_eeprom_w_parse,  "eeprom w parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19745) },
-        { bench_eeprom_w_exe,    "eeprom w exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(55394) },
+        { bench_eeprom_r_parse,  "eeprom r parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19745) },
+        { bench_eeprom_r_exe,    "eeprom r exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(52646) },
+        { bench_eeprom_w_parse,  "eeprom w parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19749) },
+        { bench_eeprom_w_exe,    "eeprom w exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(52899) },
 
         { bench_spdma_read, "SPDMAR 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
         { bench_spdma_read, "SPDMAR 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(35) },
