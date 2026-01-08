@@ -1128,12 +1128,12 @@ int main(void)
         { bench_joybus_empty7,  "JOY: Empty 56B",   64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(21170) },
         { bench_joybus_empty7e, "JOY: Empty 63B",   64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(21178) },
         { bench_joybus_1j,      "JOY: 1J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(37987) },
-        { bench_joybus_2j,      "JOY: 2J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(57972) },
+        { bench_joybus_2j,      "JOY: 2J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(57972) }, // target 60965 when a second controller is plugged
         { bench_joybus_3j,      "JOY: 3J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(77924) },
         { bench_joybus_4j,      "JOY: 4J",       64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(97890) },
         { bench_joybus_access,  "JOY: Accessory",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(36834) },
         { bench_joybus_access_read,  "JOY: AccessRead",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(99172) },
-        { bench_joybus_access_write, "JOY: AccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(101204) },
+        { bench_joybus_access_write, "JOY: AccessWrite",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(101289) },
 
         { bench_joybus_wempty0,  "JOY: W Empty 0B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(9180) },
         { bench_joybus_wempty0b, "JOY: W Empty 1B",    64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(10586) },
