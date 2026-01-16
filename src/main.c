@@ -283,7 +283,7 @@ xcycle_t bench_ram_uncached_r32_seq(benchmark_t *b) {
     volatile uint32_t *RAM1 = (volatile uint32_t*)UncachedAddr(rambuf+4);
     volatile uint32_t *RAM2 = (volatile uint32_t*)UncachedAddr(rambuf+8);
     volatile uint32_t *RAM3 = (volatile uint32_t*)UncachedAddr(rambuf+12);
-    return TIMEIT_MULTI(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
 }
 
 xcycle_t bench_ram_uncached_r32_random(benchmark_t *b) {
@@ -291,7 +291,7 @@ xcycle_t bench_ram_uncached_r32_random(benchmark_t *b) {
     volatile uint32_t *RAM1 = (volatile uint32_t*)UncachedAddr(rambuf+12);
     volatile uint32_t *RAM2 = (volatile uint32_t*)UncachedAddr(rambuf+568);
     volatile uint32_t *RAM3 = (volatile uint32_t*)UncachedAddr(rambuf+912);
-    return TIMEIT_MULTI(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
 }
 
 xcycle_t bench_ram_uncached_r32_multibank(benchmark_t *b) {
@@ -299,7 +299,7 @@ xcycle_t bench_ram_uncached_r32_multibank(benchmark_t *b) {
     volatile uint32_t *RAM1 = (volatile uint32_t*)UncachedAddr(0x80100000);
     volatile uint32_t *RAM2 = (volatile uint32_t*)UncachedAddr(0x80200000);
     volatile uint32_t *RAM3 = (volatile uint32_t*)UncachedAddr(0x80300000);
-    return TIMEIT_MULTI(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
 }
 
 xcycle_t bench_ram_uncached_r32_multirows(benchmark_t *b) {
@@ -307,7 +307,7 @@ xcycle_t bench_ram_uncached_r32_multirows(benchmark_t *b) {
     volatile uint32_t *RAM1 = (volatile uint32_t*)UncachedAddr(0x80000800);
     volatile uint32_t *RAM2 = (volatile uint32_t*)UncachedAddr(0x80001000);
     volatile uint32_t *RAM3 = (volatile uint32_t*)UncachedAddr(0x80000800);
-    return TIMEIT_MULTI(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
 }
 
 static void joybus_write(uint64_t *in) {
@@ -1097,12 +1097,12 @@ int main(void)
         { bench_ram_uncached_r8,  "RDRAM U8R",     1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(33) },
         { bench_ram_uncached_r16, "RDRAM U16R",    2,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(33) },
         { bench_ram_uncached_r32, "RDRAM U32R",    4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(33) },
-        { bench_ram_uncached_r64, "RDRAM U64R",    8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(36) },
+        { bench_ram_uncached_r64, "RDRAM U64R",    8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(35) },
 
-        { bench_ram_uncached_r32_seq,       "RDRAM U32R seq",    4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(134) },
-        { bench_ram_uncached_r32_random,    "RDRAM U32R rand",   4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(134) },
-        { bench_ram_uncached_r32_multibank, "RDRAM U32R banked", 4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(134) },
-        { bench_ram_uncached_r32_multirows, "RDRAM U32R rows",   4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(165) },
+        { bench_ram_uncached_r32_seq,       "RDRAM U32R seq",    4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(133) },
+        { bench_ram_uncached_r32_random,    "RDRAM U32R rand",   4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(133) },
+        { bench_ram_uncached_r32_multibank, "RDRAM U32R banked", 4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(133) },
+        { bench_ram_uncached_r32_multirows, "RDRAM U32R rows",   4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(167) },
 
         { bench_rcp_io_r, "RCP I/O R",    1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(24) },
         { bench_rcp_io_w, "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },  // FIXME: flush buffer
