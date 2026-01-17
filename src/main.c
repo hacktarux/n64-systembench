@@ -60,6 +60,7 @@ static volatile struct PI_regs_s * const PI_regs = (struct PI_regs_s *)0xa460000
 static volatile struct SI_regs_s * const SI_regs = (struct SI_regs_s *)0xa4800000;
 
 static volatile uint8_t * const DMEM = (uint8_t *)0xa4000000;
+static volatile uint8_t * const IMEM = (uint8_t *)0xa4001000;
 
 static volatile void *PIF_ROM = (void *)0x1fc00700;
 static volatile void *PIF_RAM = (void *)0x1fc007c0;
@@ -308,6 +309,22 @@ xcycle_t bench_ram_uncached_r32_multirows(benchmark_t *b) {
     volatile uint32_t *RAM2 = (volatile uint32_t*)UncachedAddr(0x80001000);
     volatile uint32_t *RAM3 = (volatile uint32_t*)UncachedAddr(0x80000800);
     return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
+}
+
+xcycle_t bench_sp_io_dmem_r(benchmark_t *b) {
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*(volatile uint32_t*)DMEM; }));
+}
+
+xcycle_t bench_sp_io_dmem_w(benchmark_t *b) {
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ *(uint32_t*)DMEM = 5;}));
+}
+
+xcycle_t bench_sp_io_imem_r(benchmark_t *b) {
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*(volatile uint32_t*)IMEM; }));
+}
+
+xcycle_t bench_sp_io_imem_w(benchmark_t *b) {
+    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ *(uint32_t*)IMEM = 5;}));
 }
 
 static void joybus_write(uint64_t *in) {
@@ -1158,6 +1175,10 @@ int main(void)
         { bench_eeprom_w_parse,  "eeprom w parse",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(19749) },
         { bench_eeprom_w_exe,    "eeprom w exe",64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(52899) },
 
+        { bench_sp_io_dmem_r,    "SP DMEM IO R", 4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(29) },
+        //{ bench_sp_io_dmem_w,    "SP DMEM IO W", 4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(1) },
+        { bench_sp_io_imem_r,    "SP IMEM IO R", 4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(29) },
+        //{ bench_sp_io_imem_w,    "SP IMEM IO W", 4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(1) },
         { bench_spdma_read, "SPDMAR 4", BUILD_SP_LEN_REG(1,4,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(34) },
         { bench_spdma_read, "SPDMAR 8", BUILD_SP_LEN_REG(1,8,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(35) },
         { bench_spdma_read, "SPDMAR 80", BUILD_SP_LEN_REG(1,0x80,0), UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(50) },
