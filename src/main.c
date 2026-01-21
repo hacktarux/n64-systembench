@@ -1121,7 +1121,7 @@ int main(void)
         { bench_ram_uncached_r32_multibank, "RDRAM U32R banked", 4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(133) },
         { bench_ram_uncached_r32_multirows, "RDRAM U32R rows",   4*4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(167) },
 
-        { bench_rcp_io_r, "RCP I/O R",    1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(24) },
+        { bench_rcp_io_r, "RCP I/O R",    1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
         { bench_rcp_io_w, "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },  // FIXME: flush buffer
 
         { bench_pidma, "PI DMA",        8,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(193) },
