@@ -226,7 +226,7 @@ xcycle_t bench_sidmaw_rom(benchmark_t* b) {
 }
 
 xcycle_t bench_siior(benchmark_t* b) {
-    volatile uint32_t *PIF_RAM = (volatile uint32_t*)0xBFC007C0;
+    volatile /*uint32_t*/uint64_t *PIF_RAM = (volatile /*uint32_t*/uint64_t*)0xBFC007C0;
     return TIMEIT_MULTI(50, ({ }), ({ (void)*PIF_RAM; }));
 }
 
