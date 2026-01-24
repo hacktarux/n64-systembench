@@ -162,22 +162,22 @@ static volatile void *PIF_RAM = (void *)0x1fc007c0;
     (__total - _min - _max) / (n-2); \
 })
 
-static inline void fill_out_buffer(void) {
-    uint32_t *__buf = UncachedAddr(rambuf);
-    __buf[0] = 0;
-    __buf[1] = 0;
-    __buf[2] = 0;
-    __buf[3] = 0;
-    __buf[4] = 0;
-    __buf[5] = 0;
-}
-
 xcycle_t bench_rcp_io_r(benchmark_t *b) {
     return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)VI_regs->control; }));
 }
 
 xcycle_t bench_rcp_io_w(benchmark_t *b) {
-    return TIMEIT_MULTI_ODD_DETECTION(50, fill_out_buffer(), ({ VI_regs->control = 0; }));
+   return TIMEIT_MULTI_ODD_DETECTION(50, ({
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+   }),
+				     ({
+					VI_regs->control = 0;
+				     }));
 }
 
 xcycle_t bench_pidma(benchmark_t* b) {
@@ -1159,7 +1159,7 @@ int main(void)
         { bench_ram_uncached_r64_multirows, "RDRAM U64R rows",   4*8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(170) },
 
         { bench_rcp_io_r, "RCP I/O R",    1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
-        { bench_rcp_io_w, "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },  // FIXME: flush buffer
+        { bench_rcp_io_w, "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },
 
         { bench_pidma, "PI DMA",        8,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(193) },
         { bench_pidma, "PI DMA",      128,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(1591) },
