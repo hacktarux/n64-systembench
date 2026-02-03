@@ -180,6 +180,21 @@ xcycle_t bench_rcp_io_w(benchmark_t *b) {
 				     }));
 }
 
+xcycle_t bench_rcp_io_w_after_r(benchmark_t *b) {
+   return TIMEIT_MULTI_ODD_DETECTION(50, ({
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      VI_regs->control = 0;
+      (void)PI_regs->status;
+   }),
+				     ({
+					VI_regs->control = 0;
+				     }));
+}
+
 xcycle_t bench_pidma(benchmark_t* b) {
     return TIMEIT_WHILE_MULTI(10, ({
         PI_regs->ram_address = rambuf;
@@ -1158,8 +1173,9 @@ int main(void)
         { bench_ram_uncached_r64_multibank, "RDRAM U64R banked", 4*8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(145) },
         { bench_ram_uncached_r64_multirows, "RDRAM U64R rows",   4*8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(170) },
 
-        { bench_rcp_io_r, "RCP I/O R",    1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
-        { bench_rcp_io_w, "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },
+        { bench_rcp_io_r,         "RCP I/O R",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
+        { bench_rcp_io_w,         "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },
+        { bench_rcp_io_w_after_r, "RCP I/O R+W", 1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(1) },
 
         { bench_pidma, "PI DMA",        8,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(193) },
         { bench_pidma, "PI DMA",      128,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(1591) },
