@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdalign.h>
 #include <libdragon.h>
@@ -163,7 +164,7 @@ static volatile void *PIF_RAM = (void *)0x1fc007c0;
 })
 
 xcycle_t bench_rcp_io_r(benchmark_t *b) {
-    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)VI_regs->control; }));
+   return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)VI_regs->control; }));
 }
 
 xcycle_t bench_rcp_io_w(benchmark_t *b) {
@@ -290,7 +291,7 @@ xcycle_t bench_ram_uncached_r32(benchmark_t *b) {
 }
 
 xcycle_t bench_ram_uncached_r64(benchmark_t *b) {
-    volatile uint64_t *RAM = (volatile uint64_t*)UncachedAddr(rambuf);
+    volatile uint64_t *RAM = (volatile uint64_t*)/*UncachedAddr(rambuf)*/0xa3f00800;
     return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*RAM; }));
 }
 
@@ -1093,6 +1094,16 @@ xcycle_t bench_rdp_fillrect(benchmark_t* b) {
    }));
 }
 
+xcycle_t bench_flashram_erase_chip(benchmark_t* b) {
+   return TIMEIT_WHILE_MULTI(10, ({
+      *((volatile int*)0xa8010000) = 0x3c000000;
+   }), ({
+      *((volatile int*)0xa8010000) = 0x78000000;
+   }), ({
+      (*((volatile int*)0xa8000000) & 0x80) == 0;
+   }));
+}
+
 /**************************************************************************************/
 
 void bench_rsp(void)
@@ -1252,7 +1263,9 @@ int main(void)
 
         { bench_rdp_fillrect, "RDP FILL RECT(8)", 8, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
         { bench_rdp_fillrect, "RDP FILL RECT(80)", 80, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
-        { bench_rdp_fillrect, "RDP FILL RECT(200)", 200, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) }
+        { bench_rdp_fillrect, "RDP FILL RECT(200)", 200, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
+
+        { bench_flashram_erase_chip, "FLA ERASE CHIP", 1, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(1211) }
     };
 
     rsp_init();
@@ -1388,10 +1401,7 @@ int main(void)
 	    graphics_draw_text(disp, 10, 160, sbuf);
 
 	    sprintf(sbuf, "deltas: %d %d %d %d %d %d %d %d", deltas[8], deltas[9], deltas[10], deltas[11], deltas[12], deltas[13], deltas[14], deltas[15]);
-	    graphics_draw_text(disp, 10, 170, sbuf);
-
-	    sprintf(sbuf, "bigs: %d", bigs);
-	    graphics_draw_text(disp, 10, 180, sbuf);*/
+	    graphics_draw_text(disp, 10, 170, sbuf);*/
 
             display_show(disp);
         } break;
