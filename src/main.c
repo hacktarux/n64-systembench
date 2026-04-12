@@ -221,6 +221,20 @@ xcycle_t bench_piiow(benchmark_t* b) {
     }));
 }
 
+xcycle_t bench_piior_dom2(benchmark_t* b) {
+    volatile uint32_t *DOM2 = (volatile uint32_t*)0xA8000000;
+    return TIMEIT_MULTI(50, ({ }), ({ (void)*DOM2; }));
+}
+
+xcycle_t bench_piiow_dom2(benchmark_t* b) {
+    volatile uint32_t *DOM2 = (volatile uint32_t*)0xA8000000;
+    return TIMEIT_WHILE_MULTI(50, ({ }), ({ 
+        DOM2[0] = 0;
+    }), ({  
+        PI_regs->status & (PI_STATUS_DMA_BUSY | PI_STATUS_IO_BUSY);
+    }));
+}
+
 xcycle_t bench_sidmaw_ram(benchmark_t* b) {
     return TIMEIT_WHILE_MULTI(10, ({
         SI_regs->DRAM_addr = rambuf;
@@ -1195,6 +1209,9 @@ int main(void)
 
         { bench_piior, "PI I/O R",   4,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(144) },
         { bench_piiow, "PI I/O W",   4,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(134) },
+
+        { bench_piior_dom2, "PI I/O R DOM2",   4,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(808) },
+        { bench_piiow_dom2, "PI I/O W DOM2",   4,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(800) },
 
         { bench_sidmaw_ram, "SI DMA W RAM",  64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(4065) },
         { bench_sidmaw_rom, "SI DMA W ROM",  64,   UNIT_BYTES, CYCLE_RCP,  XCYCLE_FROM_RCP(2144) },
