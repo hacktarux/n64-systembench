@@ -53,7 +53,7 @@ typedef struct benchmark_s {
 DEFINE_RSP_UCODE(rsp_bench);
 
 __attribute__((aligned(64)))
-uint8_t rambuf[1024*1024];
+uint8_t rambuf[1024*1024+16];
 
 static volatile struct SP_regs_s * const SP_regs = (struct SP_regs_s *)0xa4040000;
 static volatile struct VI_regs_s * const VI_regs = (struct VI_regs_s *)0xa4400000;
@@ -371,6 +371,29 @@ xcycle_t bench_ram_uncached_r64_multirows(benchmark_t *b) {
     volatile uint64_t *RAM2 = (volatile uint64_t*)UncachedAddr(0x80001000);
     volatile uint64_t *RAM3 = (volatile uint64_t*)UncachedAddr(0x80000800);
     return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*RAM0; (void)*RAM1; (void)*RAM2; (void)*RAM3; }));
+}
+
+xcycle_t bench_ram_uncached_w32(benchmark_t *b)  {
+   volatile uint32_t* RAMBUF = (volatile uint32_t*)UncachedAddr(rambuf);
+   return TIMEIT_MULTI_ODD_DETECTION(50,
+				     ({ *RAMBUF = 1; *RAMBUF = 2; *RAMBUF = 3; *RAMBUF = 4; *RAMBUF = 5; }),
+				     ({ *RAMBUF = 6; }));
+}
+
+xcycle_t bench_ram_uncached_w32_bank(benchmark_t *b) {
+   volatile uint32_t* RAMBUF = (volatile uint32_t*)UncachedAddr(rambuf);
+   volatile uint32_t* RAMBUF_BANK2 = (volatile uint32_t*)UncachedAddr(rambuf + 0x100000);
+   return TIMEIT_MULTI_ODD_DETECTION(50,
+				     ({ *RAMBUF = 1; *RAMBUF = 2; *RAMBUF = 3; *RAMBUF = 4; *RAMBUF = 5; }),
+				     ({ *RAMBUF_BANK2 = 6; }));
+}
+
+xcycle_t bench_ram_uncached_w32_row(benchmark_t *b) {
+   volatile uint32_t* RAMBUF = (volatile uint32_t*)UncachedAddr(rambuf);
+   volatile uint32_t* RAMBUF_ROW2 = (volatile uint32_t*)UncachedAddr(rambuf + 0x800);
+   return TIMEIT_MULTI_ODD_DETECTION(50,
+				     ({ *RAMBUF = 1; *RAMBUF = 2; *RAMBUF = 3; *RAMBUF = 4; *RAMBUF = 5; }),
+				     ({ *RAMBUF_ROW2 = 6; }));
 }
 
 xcycle_t bench_sp_io_dmem_r(benchmark_t *b) {
@@ -1198,6 +1221,10 @@ int main(void)
         { bench_ram_uncached_r64_multibank, "RDRAM U64R banked", 4*8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(145) },
         { bench_ram_uncached_r64_multirows, "RDRAM U64R rows",   4*8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(170) },
 
+       { bench_ram_uncached_w32,     "RDRAM U32W",         4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(15) },
+       { bench_ram_uncached_w32_bank,"RDRAM U32W sw bank", 4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(15) },
+       { bench_ram_uncached_w32_row, "RDRAM U32W sw row",  4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(20) },
+
         { bench_rcp_io_r,         "RCP I/O R",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
         { bench_rcp_io_w,         "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(10) },
         { bench_rcp_io_w_after_r, "RCP I/O R+W", 1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(1) },
@@ -1282,9 +1309,14 @@ int main(void)
         { bench_rdp_fillrect, "RDP FILL RECT(80)", 80, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
         { bench_rdp_fillrect, "RDP FILL RECT(200)", 200, UNIT_BYTES, CYCLE_RCP, XCYCLE_FROM_RCP(10) },
 
-        { bench_flashram_erase_chip, "FLA ERASE CHIP", 1, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(1211) }
+        //{ bench_flashram_erase_chip, "FLA ERASE CHIP", 1, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(1211) }
     };
 
+   *((volatile int*)0xa4600024) = 0x5; // PI_BSD_DOM2_LAT
+   *((volatile int*)0xa4600028) = 0xC; // PI_BSD_DOM2_PWD
+   *((volatile int*)0xa460002C) = 0xF; // PI_BSD_DOM2_PGS
+   *((volatile int*)0xa4600030) = 0x2; // PI_BSD_DOM2_RLS
+     
     rsp_init();
     debug_init_isviewer();
     debug_init_usblog();
