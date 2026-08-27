@@ -163,6 +163,10 @@ static volatile void *PIF_RAM = (void *)0x1fc007c0;
     (__total - _min - _max) / (n-2); \
 })
 
+static inline void invalidate_icache_line(const void *addr) {
+   asm volatile ("cache 0x00, 0(%0)" :: "r" (addr));
+}
+
 xcycle_t bench_rcp_io_r(benchmark_t *b) {
    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)VI_regs->control; }));
 }
@@ -178,6 +182,8 @@ xcycle_t bench_rcp_io_w(benchmark_t *b) {
 }
 
 xcycle_t bench_rcp_io_w_after_r(benchmark_t *b) {
+   debugf("labeladdr:%p", &&mylabel);
+mylabel:
    return TIMEIT_MULTI_ODD_DETECTION(50, ({
       VI_regs->control = 0;
       VI_regs->control = 0;
@@ -390,6 +396,112 @@ xcycle_t bench_ram_uncached_w32_row(benchmark_t *b) {
    return TIMEIT_MULTI_ODD_DETECTION(50,
 				     ({ (void)*RAMBUF; }),
 				     ({ *RAMBUF_ROW2 = 1; (void)*RAMBUF; }));
+}
+
+xcycle_t bench_icache_fill_page_hit(benchmark_t *b)  {
+   uintptr_t page_base = (((uintptr_t)rambuf + 0x800) & ~0x7FF) + 0x1000;
+
+   volatile uint32_t *payload_uc = (volatile uint32_t *)UncachedAddr(page_base);
+   for(int i = 0; i < 6; i++) payload_uc[i] = 0x00000000; // nop
+   payload_uc[6] = 0x03e00008; // jr ra
+   payload_uc[7] = 0x00000000; // nop (branch delay slot)
+     
+   void (*target_func)(void) = (void (*)(void))(page_base | 0x80000000);
+
+   volatile uint32_t *same_page_uc = (volatile uint32_t *)UncachedAddr(page_base + 0x20);
+   
+   target_func();
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_icache_line((void*)target_func);
+			  (void)*same_page_uc;
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  target_func();
+		       }
+		       ));
+}
+
+xcycle_t bench_icache_fill_page_miss(benchmark_t *b)  {
+   uintptr_t page_base = (((uintptr_t)rambuf + 0x800) & ~0x7FF) + 0x1000;
+   
+   volatile uint32_t *payload_uc = (volatile uint32_t *)UncachedAddr(page_base);
+   for(int i = 0; i < 6; i++) payload_uc[i] = 0x00000000; // nop
+   payload_uc[6] = 0x03e00008; // jr ra
+   payload_uc[7] = 0x00000000; // nop (branch delay slot)
+   
+   void (*target_func)(void) = (void (*)(void))(page_base | 0x80000000);
+   
+   volatile uint32_t *diff_page_uc = (volatile uint32_t *)UncachedAddr(page_base + 0x800);
+   
+   target_func();
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_icache_line((void*)target_func);
+			  (void)*diff_page_uc;
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  target_func();
+		       }
+		       ));
+}
+
+xcycle_t bench_icache_fill_begin_page_hit(benchmark_t *b)  {
+   uintptr_t page_base = (((uintptr_t)rambuf + 0x800) & ~0x7FF) + 0x1000;
+
+   volatile uint32_t *payload_uc = (volatile uint32_t *)UncachedAddr(page_base);
+   payload_uc[0] = 0x03e00008; // jr ra
+   payload_uc[1] = 0x00000000; // nop (branch delay slot)
+     
+   void (*target_func)(void) = (void (*)(void))(page_base | 0x80000000);
+
+   volatile uint32_t *same_page_uc = (volatile uint32_t *)UncachedAddr(page_base + 0x20);
+   
+   target_func();
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_icache_line((void*)target_func);
+			  (void)*same_page_uc;
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  target_func();
+		       }
+		       ));
+}
+
+xcycle_t bench_icache_fill_begin_page_miss(benchmark_t *b)  {
+   uintptr_t page_base = (((uintptr_t)rambuf + 0x800) & ~0x7FF) + 0x1000;
+   
+   volatile uint32_t *payload_uc = (volatile uint32_t *)UncachedAddr(page_base);
+   payload_uc[0] = 0x03e00008; // jr ra
+   payload_uc[1] = 0x00000000; // nop (branch delay slot)
+   
+   void (*target_func)(void) = (void (*)(void))(page_base | 0x80000000);
+   
+   volatile uint32_t *diff_page_uc = (volatile uint32_t *)UncachedAddr(page_base + 0x800);
+   
+   target_func();
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_icache_line((void*)target_func);
+			  (void)*diff_page_uc;
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  target_func();
+		       }
+		       ));
 }
 
 xcycle_t bench_sp_io_dmem_r(benchmark_t *b) {
@@ -1225,9 +1337,14 @@ int main(void)
         { bench_ram_uncached_r64_multibank, "RDRAM U64R banked", 4*8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(145) },
         { bench_ram_uncached_r64_multirows, "RDRAM U64R rows",   4*8,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(170) },
 
-       { bench_ram_uncached_w32,     "RDRAM U32W",         4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(46) },
-       { bench_ram_uncached_w32_bank,"RDRAM U32W sw bank", 4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(46) },
-       { bench_ram_uncached_w32_row, "RDRAM U32W sw row",  4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(64) },
+        { bench_ram_uncached_w32,     "RDRAM U32W",         4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(46) },
+        { bench_ram_uncached_w32_bank,"RDRAM U32W sw bank", 4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(46) },
+        { bench_ram_uncached_w32_row, "RDRAM U32W sw row",  4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(64) },
+
+        { bench_icache_fill_page_hit, "ICACHE Fill (Hit)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(54) },
+        { bench_icache_fill_page_miss, "ICACHE Fill (Miss)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(61) },
+        { bench_icache_fill_begin_page_hit, "ICACHE Begin (Hit)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(49) },
+        { bench_icache_fill_begin_page_miss, "ICACHE Begin (Miss)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(54) },
 
         { bench_rcp_io_r,         "RCP I/O R",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
         { bench_rcp_io_w,         "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(29) },
