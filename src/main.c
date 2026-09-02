@@ -167,6 +167,11 @@ static inline void invalidate_icache_line(const void *addr) {
    asm volatile ("cache 0x00, 0(%0)" :: "r" (addr));
 }
 
+static inline void invalidate_dcache_line(const void *addr) 
+{
+   asm volatile ("cache 0x11, 0(%0)" :: "r" (addr));
+}
+
 xcycle_t bench_rcp_io_r(benchmark_t *b) {
    return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)VI_regs->control; }));
 }
@@ -503,6 +508,85 @@ xcycle_t bench_icache_fill_begin_page_miss(benchmark_t *b)  {
 		       }
 		       ));
 }
+
+xcycle_t bench_dcache_cwf_base(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop");
+		       }
+		       ),
+		       ({
+			  asm volatile("lw $t0, 0(%0)" :: "r" (target) : "t0");
+		       }
+		       ));
+}
+
+xcycle_t bench_dcache_cwf_word1(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop");
+		       }
+		       ),
+		       ({
+			  asm volatile(
+				       "lw $t0, 0(%0)\n"
+				       "lw $t1, 4(%0)\n"
+				       :: "r" (target) : "t0", "t1"
+				      );
+		       }
+		       ));
+}
+
+
+xcycle_t bench_dcache_cwf_word2(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop");
+		       }
+		       ),
+		       ({
+			  asm volatile(
+				       "lw $t0, 0(%0)\n"
+				       "lw $t1, 8(%0)\n"
+				       :: "r" (target) : "t0", "t1"
+				      );
+		       }
+		       ));
+}
+
+
+xcycle_t bench_dcache_cwf_word3(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop");
+		       }
+		       ),
+		       ({
+			  asm volatile(
+				       "lw $t0, 0(%0)\n"
+				       "lw $t1, 12(%0)\n"
+				       :: "r" (target) : "t0", "t1"
+				      );
+		       }
+		       ));
+}
+
 
 xcycle_t bench_sp_io_dmem_r(benchmark_t *b) {
     return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*(volatile uint32_t*)DMEM; }));
@@ -1341,10 +1425,15 @@ int main(void)
         { bench_ram_uncached_w32_bank,"RDRAM U32W sw bank", 4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(46) },
         { bench_ram_uncached_w32_row, "RDRAM U32W sw row",  4,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(64) },
 
-        { bench_icache_fill_page_hit, "ICACHE Fill (Hit)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(54) },
-        { bench_icache_fill_page_miss, "ICACHE Fill (Miss)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(61) },
-        { bench_icache_fill_begin_page_hit, "ICACHE Begin (Hit)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(49) },
+        { bench_icache_fill_page_hit,        "ICACHE Fill (Hit)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(54) },
+        { bench_icache_fill_page_miss,       "ICACHE Fill (Miss)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(61) },
+        { bench_icache_fill_begin_page_hit,  "ICACHE Begin (Hit)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(49) },
         { bench_icache_fill_begin_page_miss, "ICACHE Begin (Miss)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(54) },
+
+        { bench_dcache_cwf_base,  "DCACHE Miss (W0 Only)", 4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(35) },
+        { bench_dcache_cwf_word1, "DCACHE Miss (W0,W1)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
+        { bench_dcache_cwf_word2, "DCACHE Miss (W0,W2)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
+        { bench_dcache_cwf_word3, "DCACHE Miss (W0,W3)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
 
         { bench_rcp_io_r,         "RCP I/O R",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
         { bench_rcp_io_w,         "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(29) },
