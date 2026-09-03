@@ -516,7 +516,7 @@ xcycle_t bench_dcache_cwf_base(benchmark_t *b)
    return TIMEIT_MULTI(50,
 		       ({
 			  invalidate_dcache_line(target);
-			  asm volatile("nop");
+			  asm volatile("nop; nop; nop; nop;");
 		       }
 		       ),
 		       ({
@@ -532,7 +532,7 @@ xcycle_t bench_dcache_cwf_word1(benchmark_t *b)
    return TIMEIT_MULTI(50,
 		       ({
 			  invalidate_dcache_line(target);
-			  asm volatile("nop");
+			  asm volatile("nop; nop; nop; nop:");
 		       }
 		       ),
 		       ({
@@ -553,7 +553,7 @@ xcycle_t bench_dcache_cwf_word2(benchmark_t *b)
    return TIMEIT_MULTI(50,
 		       ({
 			  invalidate_dcache_line(target);
-			  asm volatile("nop");
+			  asm volatile("nop; nop; nop; nop;");
 		       }
 		       ),
 		       ({
@@ -574,7 +574,7 @@ xcycle_t bench_dcache_cwf_word3(benchmark_t *b)
    return TIMEIT_MULTI(50,
 		       ({
 			  invalidate_dcache_line(target);
-			  asm volatile("nop");
+			  asm volatile("nop; nop; nop; nop;");
 		       }
 		       ),
 		       ({
@@ -587,6 +587,26 @@ xcycle_t bench_dcache_cwf_word3(benchmark_t *b)
 		       ));
 }
 
+xcycle_t bench_dcache_cwf_row(benchmark_t *b) 
+{
+   uintptr_t page_base = (((uintptr_t)rambuf + 0x800) & ~0x7FF) + 0x1000;
+   
+   uint32_t *target = (uint32_t *)(page_base | 0x80000000);
+   
+   volatile uint32_t *diff_page_uc = (volatile uint32_t *)UncachedAddr(page_base + 0x2000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  (void)*diff_page_uc;
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  asm volatile("lw $t0, 0(%0)" :: "r" (target) : "t0");
+		       }
+		       ));
+}
 
 xcycle_t bench_sp_io_dmem_r(benchmark_t *b) {
     return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*(volatile uint32_t*)DMEM; }));
@@ -1430,10 +1450,12 @@ int main(void)
         { bench_icache_fill_begin_page_hit,  "ICACHE Begin (Hit)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(49) },
         { bench_icache_fill_begin_page_miss, "ICACHE Begin (Miss)", 32, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(54) },
 
-        { bench_dcache_cwf_base,  "DCACHE Miss (W0 Only)", 4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(35) },
-        { bench_dcache_cwf_word1, "DCACHE Miss (W0,W1)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
-        { bench_dcache_cwf_word2, "DCACHE Miss (W0,W2)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
-        { bench_dcache_cwf_word3, "DCACHE Miss (W0,W3)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
+        { bench_dcache_cwf_base,  "DCACHE Miss (W0)",     4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(35) },
+        { bench_dcache_cwf_word1, "DCACHE Miss (W0,W1)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(40) },
+        { bench_dcache_cwf_word2, "DCACHE Miss (W0,W2)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(40) },
+        { bench_dcache_cwf_word3, "DCACHE Miss (W0,W3)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(40) },
+
+        { bench_dcache_cwf_row,   "DCACHE Miss row",     4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(44) },
 
         { bench_rcp_io_r,         "RCP I/O R",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
         { bench_rcp_io_w,         "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(29) },
