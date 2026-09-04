@@ -608,6 +608,79 @@ xcycle_t bench_dcache_cwf_row(benchmark_t *b)
 		       ));
 }
 
+xcycle_t bench_dcache_miss_write_sw(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  asm volatile("sw $zero, 0(%0)" :: "r" (target));
+		       }
+		       ));
+}
+
+xcycle_t bench_dcache_miss_write_sb(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  asm volatile("sb $zero, 0(%0)" :: "r" (target));
+		       }
+		       ));
+}
+
+xcycle_t bench_dcache_miss_write_sw_lw(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  asm volatile(
+				       "sw $zero, 0(%0)\n"
+				       "lw $t0, 4(%0)\n"
+				       :: "r" (target) : "t0"
+				      );
+		       }
+		       ));
+}
+
+xcycle_t bench_dcache_miss_write_sw_sw(benchmark_t *b) 
+{
+   uint32_t *target = (uint32_t *)((((uintptr_t)rambuf + 0x800) & ~0xF) | 0x80000000);
+   
+   return TIMEIT_MULTI(50,
+		       ({
+			  invalidate_dcache_line(target);
+			  asm volatile("nop; nop; nop; nop;");
+		       }
+		       ),
+		       ({
+			  asm volatile(
+				       "sw $zero, 0(%0)\n"
+				       "sw $zero, 4(%0)\n"
+				       :: "r" (target)
+				      );
+		       }
+		       ));
+}
+
+
 xcycle_t bench_sp_io_dmem_r(benchmark_t *b) {
     return TIMEIT_MULTI_ODD_DETECTION(50, ({ }), ({ (void)*(volatile uint32_t*)DMEM; }));
 }
@@ -1456,6 +1529,11 @@ int main(void)
         { bench_dcache_cwf_word3, "DCACHE Miss (W0,W3)",  8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(40) },
 
         { bench_dcache_cwf_row,   "DCACHE Miss row",     4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(44) },
+
+        { bench_dcache_miss_write_sw,    "DCACHE Miss W (sw)",    4, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(35) },
+        { bench_dcache_miss_write_sb,    "DCACHE Miss W (sb)",    1, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(35) },
+        { bench_dcache_miss_write_sw_lw, "DCACHE Miss W (sw lw)", 8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
+        { bench_dcache_miss_write_sw_sw, "DCACHE Miss W (sw sw)", 8, UNIT_BYTES, CYCLE_CPU, XCYCLE_FROM_CPU(39) },
 
         { bench_rcp_io_r,         "RCP I/O R",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(23) },
         { bench_rcp_io_w,         "RCP I/O W",   1,   UNIT_BYTES, CYCLE_CPU,  XCYCLE_FROM_CPU(29) },
